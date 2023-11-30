@@ -1,0 +1,178 @@
+openapi: 3.0.0
+info:
+  title: Web Blog API
+  version: 1.0.1
+servers:
+  - url: 'https://api.yourblogdomain.com'
+    description: Main production server
+
+paths:
+  /articles:
+    get:
+      summary: Get a list of articles
+      responses:
+        '200':
+          description: A list of articles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Article'
+
+    post:
+      summary: Create a new article
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Article'
+      responses:
+        '201':
+          description: Article created
+
+  /articles/{articleId}:
+    put:
+      summary: Update an article
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Article'
+      responses:
+        '200':
+          description: Article updated
+
+    delete:
+      summary: Delete an article
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Article deleted
+
+  /articles/{articleId}/comments:
+    post:
+      summary: Add a comment to an article
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Comment'
+      responses:
+        '201':
+          description: Comment added
+
+  /articles/{articleId}/comments/{commentId}:
+    delete:
+      summary: Delete a comment
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Comment deleted
+
+  /articles/{articleId}/ratings:
+    post:
+      summary: Rate an article
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Rating'
+      responses:
+        '201':
+          description: Rating added
+
+  /articles/{articleId}/ratings/{ratingId}:
+    delete:
+      summary: Delete a rating (Administrator only)
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: ratingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Rating deleted
+
+components:
+  schemas:
+    Article:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        content:
+          type: string
+        author:
+          type: string
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        content:
+          type: string
+        author:
+          type: string
+
+    Rating:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        stars:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 5
+        user:
+          type: string
