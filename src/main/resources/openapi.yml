@@ -151,6 +151,10 @@ components:
           type: string
         author:
           type: string
+        comments:
+            type: array
+            items:
+                $ref: '#/components/schemas/Comment'
 
     Comment:
       type: object
