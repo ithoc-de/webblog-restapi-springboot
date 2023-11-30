@@ -5,25 +5,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.List;
 import java.util.UUID;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@Entity(name = "article")
-public class ArticleEntity {
+@Entity(name = "comment")
+public class CommentEntity {
 
     @Id
     @GeneratedValue
     private UUID id;
 
-    private String title;
     private String content;
     private String author;
-
-
-    @OneToMany
-    private List<CommentEntity> comments;
 
 }
