@@ -2,6 +2,7 @@ package de.ithoc.webblog.restapi.api;
 
 import de.ithoc.webblog.restapi.model.Article;
 import de.ithoc.webblog.restapi.model.Comment;
+import de.ithoc.webblog.restapi.model.Rating;
 import de.ithoc.webblog.restapi.persistence.ArticleEntity;
 import de.ithoc.webblog.restapi.persistence.ArticleRepository;
 import de.ithoc.webblog.restapi.persistence.CommentEntity;
@@ -74,6 +75,8 @@ public class ArticlesRestController implements ArticlesApi {
     public ResponseEntity<Void> articlesArticleIdDelete(String articleId) {
         log.trace("articlesArticleIdDelete called");
 
+        // TODO Delete comments first
+
         articleRepository.deleteById(UUID.fromString(articleId));
 
         return ResponseEntity.noContent().build();
@@ -100,7 +103,42 @@ public class ArticlesRestController implements ArticlesApi {
     public ResponseEntity<Void> articlesArticleIdCommentsPost(String articleId, Comment comment) {
         log.trace("articlesArticleIdCommentsPost called");
 
-        return ArticlesApi.super.articlesArticleIdCommentsPost(articleId, comment);
+        articleRepository.findById(UUID.fromString(articleId))
+                .ifPresent(articleEntity -> {
+                    CommentEntity commentEntity = modelMapper.map(comment, CommentEntity.class);
+                    commentRepository.save(commentEntity);
+                    articleEntity.getComments().add(commentEntity);
+                    articleRepository.save(articleEntity);
+                });
+
+        return ResponseEntity.status(201).build();
+    }
+
+    @Override
+    public ResponseEntity<Void> articlesArticleIdCommentsCommentIdDelete(String articleId, String commentId) {
+        log.trace("articlesArticleIdCommentsCommentIdDelete called");
+
+        // TODO Delete comment
+
+        return ArticlesApi.super.articlesArticleIdCommentsCommentIdDelete(articleId, commentId);
+    }
+
+    @Override
+    public ResponseEntity<Void> articlesArticleIdRatingsPost(String articleId, Rating rating) {
+        log.trace("articlesArticleIdRatingsPost called");
+
+        // TODO Add rating
+
+        return ArticlesApi.super.articlesArticleIdRatingsPost(articleId, rating);
+    }
+
+    @Override
+    public ResponseEntity<Void> articlesArticleIdRatingsRatingIdDelete(String articleId, String ratingId) {
+        log.trace("articlesArticleIdRatingsRatingIdDelete called");
+
+        // TODO Delete rating
+
+        return ArticlesApi.super.articlesArticleIdRatingsRatingIdDelete(articleId, ratingId);
     }
 
     private static CommentEntity createComment() {
