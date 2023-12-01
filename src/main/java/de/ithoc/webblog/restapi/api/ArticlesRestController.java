@@ -148,9 +148,14 @@ public class ArticlesRestController implements ArticlesApi {
     public ResponseEntity<Void> articlesArticleIdRatingsRatingIdDelete(String articleId, String ratingId) {
         log.trace("articlesArticleIdRatingsRatingIdDelete called");
 
-        // TODO Delete rating
+        articleRepository.findById(UUID.fromString(articleId))
+                .ifPresent(articleEntity -> {
+                    articleEntity.getRatings()
+                            .removeIf(ratingEntity -> ratingEntity.getId().equals(UUID.fromString(ratingId)));
+                    articleRepository.save(articleEntity);
+                });
 
-        return ArticlesApi.super.articlesArticleIdRatingsRatingIdDelete(articleId, ratingId);
+        return ResponseEntity.status(204).build();
     }
 
 
