@@ -3,20 +3,14 @@ package de.ithoc.webblog.restapi.api;
 import de.ithoc.webblog.restapi.model.Article;
 import de.ithoc.webblog.restapi.model.Comment;
 import de.ithoc.webblog.restapi.model.Rating;
-import de.ithoc.webblog.restapi.persistence.ArticleEntity;
-import de.ithoc.webblog.restapi.persistence.ArticleRepository;
-import de.ithoc.webblog.restapi.persistence.CommentEntity;
-import de.ithoc.webblog.restapi.persistence.CommentRepository;
+import de.ithoc.webblog.restapi.persistence.*;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @Slf4j
@@ -25,13 +19,15 @@ public class ArticlesRestController implements ArticlesApi {
     private final ModelMapper modelMapper;
     private final ArticleRepository articleRepository;
     private final CommentRepository commentRepository;
+    private final RatingRepository ratingRepository;
 
     public ArticlesRestController(ModelMapper modelMapper,
                                   ArticleRepository articleRepository,
-                                  CommentRepository commentRepository) {
+                                  CommentRepository commentRepository, RatingRepository ratingRepository) {
         this.modelMapper = modelMapper;
         this.articleRepository = articleRepository;
         this.commentRepository = commentRepository;
+        this.ratingRepository = ratingRepository;
     }
 
     @PostConstruct
@@ -40,16 +36,21 @@ public class ArticlesRestController implements ArticlesApi {
 
         String author = UUID.randomUUID().toString();
         for (int i = 0; i < 2; i++) {
-            ArticleEntity articleEntity = createArticle(author, null);
+            ArticleEntity articleEntity = createArticle(author);
             articleRepository.save(articleEntity);
-            List<CommentEntity> comments = new ArrayList<>();
+
             for(int j = 0; j < 2; j++) {
-                comments.add(commentRepository.save(createComment()));
+                articleEntity.getComments().add(commentRepository.save(createComment()));
             }
-            articleEntity.setComments(comments);
+
+            for(int j = 0; j < 2; j++) {
+                articleEntity.getRatings().add(ratingRepository.save(createRating()));
+            }
+
             articleRepository.save(articleEntity);
          }
     }
+
 
     @Override
     public ResponseEntity<List<Article>> articlesGet() {
@@ -129,12 +130,38 @@ public class ArticlesRestController implements ArticlesApi {
     }
 
     @Override
+    public ResponseEntity<Void> articlesArticleIdRatingsPost(String articleId, Rating rating) {
+        log.trace("articlesArticleIdRatingsPost called");
+
+        articleRepository.findById(UUID.fromString(articleId))
+                .ifPresent(articleEntity -> {
+                    RatingEntity ratingEntity = modelMapper.map(rating, RatingEntity.class);
+                    ratingRepository.save(ratingEntity);
+                    articleEntity.getRatings().add(ratingEntity);
+                    articleRepository.save(articleEntity);
+                });
+
+        return ResponseEntity.status(201).build();
+    }
+
+    @Override
     public ResponseEntity<Void> articlesArticleIdRatingsRatingIdDelete(String articleId, String ratingId) {
         log.trace("articlesArticleIdRatingsRatingIdDelete called");
 
         // TODO Delete rating
 
         return ArticlesApi.super.articlesArticleIdRatingsRatingIdDelete(articleId, ratingId);
+    }
+
+
+    private RatingEntity createRating() {
+        log.trace("createRating called");
+
+        RatingEntity ratingEntity = new RatingEntity();
+        ratingEntity.setStars(new Random().nextInt(5) + 1);
+        ratingEntity.setAuthor(UUID.randomUUID().toString());
+
+        return ratingEntity;
     }
 
     private static CommentEntity createComment() {
@@ -147,14 +174,13 @@ public class ArticlesRestController implements ArticlesApi {
         return commentEntity;
     }
 
-    private static ArticleEntity createArticle(String author, List<CommentEntity> comments) {
+    private static ArticleEntity createArticle(String author) {
         log.trace("createArticle called");
 
         ArticleEntity articleEntity = new ArticleEntity();
         articleEntity.setTitle(UUID.randomUUID().toString());
         articleEntity.setContent(UUID.randomUUID().toString());
         articleEntity.setAuthor(author);
-        articleEntity.setComments(comments);
 
         return articleEntity;
     }

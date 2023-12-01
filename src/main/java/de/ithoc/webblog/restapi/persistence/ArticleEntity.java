@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,6 +25,9 @@ public class ArticleEntity {
 
 
     @OneToMany(cascade = CascadeType.ALL)
-    private List<CommentEntity> comments;
+    private List<CommentEntity> comments = new ArrayList<>();
+
+    @OneToMany(cascade = CascadeType.ALL)
+    private List<RatingEntity> ratings = new ArrayList<>();
 
 }
