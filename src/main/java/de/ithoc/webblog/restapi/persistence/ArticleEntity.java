@@ -23,7 +23,7 @@ public class ArticleEntity {
     private String author;
 
 
-    @OneToMany
+    @OneToMany(cascade = CascadeType.ALL)
     private List<CommentEntity> comments;
 
 }

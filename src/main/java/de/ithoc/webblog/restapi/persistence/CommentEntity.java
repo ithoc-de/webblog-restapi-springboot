@@ -13,6 +13,7 @@ import java.util.UUID;
 @Entity(name = "comment")
 public class CommentEntity {
 
+    @Getter
     @Id
     @GeneratedValue
     private UUID id;

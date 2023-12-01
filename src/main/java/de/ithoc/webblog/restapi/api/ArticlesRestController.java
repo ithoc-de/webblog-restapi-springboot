@@ -40,11 +40,13 @@ public class ArticlesRestController implements ArticlesApi {
 
         String author = UUID.randomUUID().toString();
         for (int i = 0; i < 2; i++) {
+            ArticleEntity articleEntity = createArticle(author, null);
+            articleRepository.save(articleEntity);
             List<CommentEntity> comments = new ArrayList<>();
             for(int j = 0; j < 2; j++) {
                 comments.add(commentRepository.save(createComment()));
             }
-            ArticleEntity articleEntity = createArticle(author, comments);
+            articleEntity.setComments(comments);
             articleRepository.save(articleEntity);
          }
     }
@@ -74,8 +76,6 @@ public class ArticlesRestController implements ArticlesApi {
     @Override
     public ResponseEntity<Void> articlesArticleIdDelete(String articleId) {
         log.trace("articlesArticleIdDelete called");
-
-        // TODO Delete comments first
 
         articleRepository.deleteById(UUID.fromString(articleId));
 
@@ -118,18 +118,14 @@ public class ArticlesRestController implements ArticlesApi {
     public ResponseEntity<Void> articlesArticleIdCommentsCommentIdDelete(String articleId, String commentId) {
         log.trace("articlesArticleIdCommentsCommentIdDelete called");
 
-        // TODO Delete comment
+        articleRepository.findById(UUID.fromString(articleId))
+                .ifPresent(articleEntity -> {
+                    articleEntity.getComments()
+                            .removeIf(commentEntity -> commentEntity.getId().equals(UUID.fromString(commentId)));
+                    articleRepository.save(articleEntity);
+                });
 
-        return ArticlesApi.super.articlesArticleIdCommentsCommentIdDelete(articleId, commentId);
-    }
-
-    @Override
-    public ResponseEntity<Void> articlesArticleIdRatingsPost(String articleId, Rating rating) {
-        log.trace("articlesArticleIdRatingsPost called");
-
-        // TODO Add rating
-
-        return ArticlesApi.super.articlesArticleIdRatingsPost(articleId, rating);
+        return ResponseEntity.status(204).build();
     }
 
     @Override
