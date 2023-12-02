@@ -1,5 +1,6 @@
 package de.ithoc.webblog.restapi.api;
 
+import de.ithoc.webblog.restapi.AuthService;
 import de.ithoc.webblog.restapi.model.Article;
 import de.ithoc.webblog.restapi.model.Comment;
 import de.ithoc.webblog.restapi.model.Rating;
@@ -7,8 +8,9 @@ import de.ithoc.webblog.restapi.persistence.*;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
@@ -20,14 +22,18 @@ public class ArticlesRestController implements ArticlesApi {
     private final ArticleRepository articleRepository;
     private final CommentRepository commentRepository;
     private final RatingRepository ratingRepository;
+    private final AuthService authService;
 
     public ArticlesRestController(ModelMapper modelMapper,
                                   ArticleRepository articleRepository,
-                                  CommentRepository commentRepository, RatingRepository ratingRepository) {
+                                  CommentRepository commentRepository,
+                                  RatingRepository ratingRepository,
+                                  AuthService authService) {
         this.modelMapper = modelMapper;
         this.articleRepository = articleRepository;
         this.commentRepository = commentRepository;
         this.ratingRepository = ratingRepository;
+        this.authService = authService;
     }
 
     @PostConstruct
@@ -39,22 +45,31 @@ public class ArticlesRestController implements ArticlesApi {
             ArticleEntity articleEntity = createArticle(author);
             articleRepository.save(articleEntity);
 
-            for(int j = 0; j < 2; j++) {
+            for (int j = 0; j < 2; j++) {
                 articleEntity.getComments().add(commentRepository.save(createComment()));
             }
 
-            for(int j = 0; j < 2; j++) {
+            for (int j = 0; j < 2; j++) {
                 articleEntity.getRatings().add(ratingRepository.save(createRating()));
             }
 
             articleRepository.save(articleEntity);
-         }
+        }
     }
 
 
-    @Override
-    public ResponseEntity<List<Article>> articlesGet() {
+    @GetMapping(value = "/articles")
+    public ResponseEntity<List<Article>> articlesGet(@RequestHeader(HttpHeaders.AUTHORIZATION) String token) {
         log.trace("articlesGet called");
+
+        if (!token.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).build();
+        }
+
+        token = token.substring(7);
+        if(!authService.validateToken(token)) {
+            return ResponseEntity.status(401).build();
+        }
 
         List<ArticleEntity> all = articleRepository.findAll();
         List<Article> articles = all.stream()
