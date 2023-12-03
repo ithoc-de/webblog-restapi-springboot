@@ -1,4 +1,4 @@
-package de.ithoc.webblog.restapi;
+package de.ithoc.webblog.restapi.services;
 
 import de.ithoc.webblog.restapi.api.AuthClientResponseBody;
 import de.ithoc.webblog.restapi.api.ValidationBody;
@@ -22,10 +22,17 @@ public class AuthService {
         this.authClient = authClient;
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean validateToken(String token) {
+
+        if (!token.startsWith("Bearer ")) {
+            return false;
+        }
+        token = token.substring(7);
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("x-api-key", apiKey);
+        headers.set(HttpHeaders.CONTENT_TYPE, "application/json");
 
         ValidationBody validationBody = new ValidationBody();
         validationBody.setAccessToken(token);
