@@ -1,73 +1,49 @@
 package de.ithoc.webblog.restapi.api;
 
-import de.ithoc.webblog.restapi.AuthService;
+import de.ithoc.webblog.restapi.services.AuthService;
 import de.ithoc.webblog.restapi.model.Article;
-import de.ithoc.webblog.restapi.model.Comment;
-import de.ithoc.webblog.restapi.model.Rating;
-import de.ithoc.webblog.restapi.persistence.*;
-import jakarta.annotation.PostConstruct;
+import de.ithoc.webblog.restapi.persistence.ArticleEntity;
+import de.ithoc.webblog.restapi.persistence.ArticleRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @Slf4j
-public class ArticlesRestController implements ArticlesApi {
+public class ArticlesRestController {
 
     private final ModelMapper modelMapper;
     private final ArticleRepository articleRepository;
-    private final CommentRepository commentRepository;
-    private final RatingRepository ratingRepository;
     private final AuthService authService;
 
     public ArticlesRestController(ModelMapper modelMapper,
                                   ArticleRepository articleRepository,
-                                  CommentRepository commentRepository,
-                                  RatingRepository ratingRepository,
                                   AuthService authService) {
         this.modelMapper = modelMapper;
         this.articleRepository = articleRepository;
-        this.commentRepository = commentRepository;
-        this.ratingRepository = ratingRepository;
         this.authService = authService;
     }
 
-    @PostConstruct
-    private void init() {
-        log.trace("init called");
-
-        String author = UUID.randomUUID().toString();
-        for (int i = 0; i < 2; i++) {
-            ArticleEntity articleEntity = createArticle(author);
-            articleRepository.save(articleEntity);
-
-            for (int j = 0; j < 2; j++) {
-                articleEntity.getComments().add(commentRepository.save(createComment()));
-            }
-
-            for (int j = 0; j < 2; j++) {
-                articleEntity.getRatings().add(ratingRepository.save(createRating()));
-            }
-
-            articleRepository.save(articleEntity);
-        }
-    }
-
-
-    @GetMapping(value = "/articles")
-    public ResponseEntity<List<Article>> articlesGet(@RequestHeader(HttpHeaders.AUTHORIZATION) String token) {
+    @Operation(operationId = "articlesGet",
+            summary = "Get all articles",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Articles returned"),
+                    @ApiResponse(responseCode = "401", description = "Not authorized")
+            })
+    @GetMapping(value = "/articles", consumes = {"application/json"})
+    public ResponseEntity<List<Article>> articlesGet(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String token) {
         log.trace("articlesGet called");
 
-        if (!token.startsWith("Bearer ")) {
-            return ResponseEntity.status(401).build();
-        }
-
-        token = token.substring(7);
-        if(!authService.validateToken(token)) {
+        if (!authService.validateToken(token)) {
             return ResponseEntity.status(401).build();
         }
 
@@ -79,9 +55,20 @@ public class ArticlesRestController implements ArticlesApi {
         return ResponseEntity.ok(articles);
     }
 
-    @Override
-    public ResponseEntity<Void> articlesPost(Article article) {
+    @Operation(operationId = "articlesGet",
+            summary = "Get all articles",
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "Article created"),
+                    @ApiResponse(responseCode = "401", description = "Not authorized")
+            })
+    @PostMapping(value = "/articles", consumes = {"application/json"})
+    public ResponseEntity<Void> articlesPost(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String token, Article article) {
         log.trace("articlesPost called");
+
+        if (!authService.validateToken(token)) {
+            return ResponseEntity.status(401).build();
+        }
 
         ArticleEntity articleEntity = modelMapper.map(article, ArticleEntity.class);
         articleRepository.save(articleEntity);
@@ -89,18 +76,41 @@ public class ArticlesRestController implements ArticlesApi {
         return ResponseEntity.status(201).build();
     }
 
-    @Override
-    public ResponseEntity<Void> articlesArticleIdDelete(String articleId) {
+    @Operation(operationId = "articlesGet",
+            summary = "Get all articles",
+            responses = {
+                    @ApiResponse(responseCode = "204", description = "Article deleted"),
+                    @ApiResponse(responseCode = "401", description = "Not authorized")
+            })
+    @DeleteMapping(value = "/articles", consumes = {"application/json"})
+    public ResponseEntity<Void> articlesArticleIdDelete(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String token, String articleId) {
         log.trace("articlesArticleIdDelete called");
+
+        if (!authService.validateToken(token)) {
+            return ResponseEntity.status(401).build();
+        }
 
         articleRepository.deleteById(UUID.fromString(articleId));
 
         return ResponseEntity.noContent().build();
     }
 
-    @Override
-    public ResponseEntity<Void> articlesArticleIdPut(String articleId, Article article) {
+    @Operation(operationId = "articlesGet",
+            summary = "Get all articles",
+            responses = {
+                    @ApiResponse(responseCode = "204", description = "Article updated"),
+                    @ApiResponse(responseCode = "401", description = "Not authorized"),
+                    @ApiResponse(responseCode = "404", description = "Article not found")
+            })
+    @PutMapping(value = "/articles", consumes = {"application/json"})
+    public ResponseEntity<Void> articlesArticleIdPut(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String token, String articleId, Article article) {
         log.trace("articlesArticleIdPut called");
+
+        if (!authService.validateToken(token)) {
+            return ResponseEntity.status(401).build();
+        }
 
         Optional<ArticleEntity> byId = articleRepository.findById(UUID.fromString(articleId));
         if (byId.isEmpty()) {
@@ -113,96 +123,6 @@ public class ArticlesRestController implements ArticlesApi {
         articleRepository.save(byId.get());
 
         return ResponseEntity.noContent().build();
-    }
-
-    @Override
-    public ResponseEntity<Void> articlesArticleIdCommentsPost(String articleId, Comment comment) {
-        log.trace("articlesArticleIdCommentsPost called");
-
-        articleRepository.findById(UUID.fromString(articleId))
-                .ifPresent(articleEntity -> {
-                    CommentEntity commentEntity = modelMapper.map(comment, CommentEntity.class);
-                    commentRepository.save(commentEntity);
-                    articleEntity.getComments().add(commentEntity);
-                    articleRepository.save(articleEntity);
-                });
-
-        return ResponseEntity.status(201).build();
-    }
-
-    @Override
-    public ResponseEntity<Void> articlesArticleIdCommentsCommentIdDelete(String articleId, String commentId) {
-        log.trace("articlesArticleIdCommentsCommentIdDelete called");
-
-        articleRepository.findById(UUID.fromString(articleId))
-                .ifPresent(articleEntity -> {
-                    articleEntity.getComments()
-                            .removeIf(commentEntity -> commentEntity.getId().equals(UUID.fromString(commentId)));
-                    articleRepository.save(articleEntity);
-                });
-
-        return ResponseEntity.status(204).build();
-    }
-
-    @Override
-    public ResponseEntity<Void> articlesArticleIdRatingsPost(String articleId, Rating rating) {
-        log.trace("articlesArticleIdRatingsPost called");
-
-        articleRepository.findById(UUID.fromString(articleId))
-                .ifPresent(articleEntity -> {
-                    RatingEntity ratingEntity = modelMapper.map(rating, RatingEntity.class);
-                    ratingRepository.save(ratingEntity);
-                    articleEntity.getRatings().add(ratingEntity);
-                    articleRepository.save(articleEntity);
-                });
-
-        return ResponseEntity.status(201).build();
-    }
-
-    @Override
-    public ResponseEntity<Void> articlesArticleIdRatingsRatingIdDelete(String articleId, String ratingId) {
-        log.trace("articlesArticleIdRatingsRatingIdDelete called");
-
-        articleRepository.findById(UUID.fromString(articleId))
-                .ifPresent(articleEntity -> {
-                    articleEntity.getRatings()
-                            .removeIf(ratingEntity -> ratingEntity.getId().equals(UUID.fromString(ratingId)));
-                    articleRepository.save(articleEntity);
-                });
-
-        return ResponseEntity.status(204).build();
-    }
-
-
-    private RatingEntity createRating() {
-        log.trace("createRating called");
-
-        RatingEntity ratingEntity = new RatingEntity();
-        ratingEntity.setStars(new Random().nextInt(5) + 1);
-        ratingEntity.setAuthor(UUID.randomUUID().toString());
-
-        return ratingEntity;
-    }
-
-    private static CommentEntity createComment() {
-        log.trace("createComment called");
-
-        CommentEntity commentEntity = new CommentEntity();
-        commentEntity.setContent(UUID.randomUUID().toString());
-        commentEntity.setAuthor(UUID.randomUUID().toString());
-
-        return commentEntity;
-    }
-
-    private static ArticleEntity createArticle(String author) {
-        log.trace("createArticle called");
-
-        ArticleEntity articleEntity = new ArticleEntity();
-        articleEntity.setTitle(UUID.randomUUID().toString());
-        articleEntity.setContent(UUID.randomUUID().toString());
-        articleEntity.setAuthor(author);
-
-        return articleEntity;
     }
 
 }
