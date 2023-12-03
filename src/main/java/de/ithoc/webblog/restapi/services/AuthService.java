@@ -22,6 +22,7 @@ public class AuthService {
         this.authClient = authClient;
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean validateToken(String token) {
 
         if (!token.startsWith("Bearer ")) {
