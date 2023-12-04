@@ -19,17 +19,18 @@ import java.util.UUID;
 
 @RestController
 @Slf4j
-public class RatingsRestController {
+@CrossOrigin(origins = "*")
+public class RatingsController {
 
     private final ModelMapper modelMapper;
     private final ArticleRepository articleRepository;
     private final RatingRepository ratingRepository;
     private final AuthService authService;
 
-    public RatingsRestController(ModelMapper modelMapper,
-                                 ArticleRepository articleRepository,
-                                 RatingRepository ratingRepository,
-                                 AuthService authService) {
+    public RatingsController(ModelMapper modelMapper,
+                             ArticleRepository articleRepository,
+                             RatingRepository ratingRepository,
+                             AuthService authService) {
         this.modelMapper = modelMapper;
         this.articleRepository = articleRepository;
         this.ratingRepository = ratingRepository;
